@@ -22,3 +22,7 @@ sw/**/*_sim.hex
 __pycache__/
 fpga/clockInfo.txt
 fpga/dfx_runtime.txt
+docs/report/*.aux
+docs/report/*.log
+docs/report/*.out
+docs/report/*.png
