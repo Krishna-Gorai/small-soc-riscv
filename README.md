@@ -36,7 +36,7 @@ Xilinx Zynq UltraScale+ ZCU104 board.
 | Debug | **JTAG debug port**: halt / resume / reset the core, peek & poke any address, load a program without rebuilding the bitstream. IEEE 1149.1 TAP for simulation, `BSCANE2` on the FPGA (no extra pins), Vivado hw-manager Tcl host script |
 | Software | GCC 15 (xPack `riscv-none-elf`), custom linker script + `crt0`, trap vector, board-support library; `hello` and `irq_demo` programs |
 | FPGA | ZCU104 (xczu7ev), 100 MHz from the 300 MHz board clock via `BUFGCE_DIV`, no MMCM / no IP; see [Results](#results) |
-| Size | ~1.1 k lines of RTL; the whole SoC is 1.5 k LUTs / 8 BRAMs and closes timing at 100 MHz with 5.4 ns to spare |
+| Size | ~1.5 k lines of RTL; the whole SoC incl. debug port is 1.7 k LUTs / 8 BRAMs and closes timing at 100 MHz with 5.3 ns to spare |
 
 ## Repository layout
 
@@ -113,8 +113,9 @@ ZCU104 (xczu7ev-ffvc1156-2-e), Vivado 2025.1, 100 MHz, default flow
 
 | | LUTs | FFs | RAMB36 | DSP | Timing | Power (est.) |
 |---|---:|---:|---:|---:|---|---|
-| whole SoC (`soc_top`) | 1 519 | 756 | 8 | 0 | met, WNS +5.36 ns | 0.63 W (0.015 W dynamic) |
-| of which core (`riscv_core`) | 1 377 | 488 | 0 | 0 | | |
+| whole SoC (`soc_top`) | 1 710 | 985 | 8 | 0 | met, WNS +5.28 ns | 0.63 W (0.017 W dynamic) |
+| of which core (`riscv_core`) | 1 400 | 488 | 0 | 0 | | |
+| of which JTAG debug port (`jtag_dbg`) | 164 | 228 | 0 | 0 | TCK WNS +31 ns | |
 
 Verification: 41 / 41 riscv-tests rv32ui, the `hello` and `irq_demo`
 programs as self-checking simulations, a JTAG test that loads a program over

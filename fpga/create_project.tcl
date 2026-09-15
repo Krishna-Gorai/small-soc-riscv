@@ -12,7 +12,7 @@ add_files -fileset sources_1 [glob $root/rtl/*.v]
 add_files -fileset sources_1 $root/fpga/zcu104_top.v
 add_files -fileset sources_1 $root/rtl/program.hex
 add_files -fileset constrs_1 $root/fpga/zcu104.xdc
-add_files -fileset sim_1     $root/tests/tb/tb_soc_top.v
+add_files -fileset sim_1     [list $root/tests/tb/tb_soc_top.v $root/tests/tb/tb_jtag.v]
 add_files -fileset sim_1     $root/rtl/program.hex
 
 set_property top zcu104_top [get_filesets sources_1]
