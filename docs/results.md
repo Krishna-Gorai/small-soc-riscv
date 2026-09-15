@@ -51,6 +51,12 @@ Flow: `synth_design` -> `opt_design` -> `place_design` -> `phys_opt_design`
 -> `route_design` -> `write_bitstream`, default directives, about 25 minutes
 on an 8 GB laptop (placement dominates, swap-bound).
 
+The same result is reproduced by the Vivado *project* flow
+(`fpga/create_project.tcl` + `fpga/run_project.tcl`, i.e. the GUI's
+`synth_1`/`impl_1` runs with default strategies): WNS +5.275 ns, 1 717 LUT /
+995 FF / 8 RAMB36, bitstream in `Small_SoC.runs/impl_1/`. Its reports are
+kept in `fpga/reports/project_flow/`.
+
 ## Instruction timing
 
 Measured with `mcycle`/`minstret` from `irq_demo` (simulation build):

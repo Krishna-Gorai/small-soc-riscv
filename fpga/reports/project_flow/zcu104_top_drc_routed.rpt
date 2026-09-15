@@ -1,0 +1,35 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.1 (win64) Build 6140274 Thu May 22 00:12:29 MDT 2025
+| Date         : Tue Sep 15 17:03:58 2026
+| Host         : Krishna_NITjsr running 64-bit major release  (build 9200)
+| Command      : report_drc -file zcu104_top_drc_routed.rpt -pb zcu104_top_drc_routed.pb -rpx zcu104_top_drc_routed.rpx
+| Design       : zcu104_top
+| Device       : xczu7ev-ffvc1156-2-e
+| Speed File   : -2
+| Design State : Fully Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Report DRC
+
+Table of Contents
+-----------------
+1. REPORT SUMMARY
+2. REPORT DETAILS
+
+1. REPORT SUMMARY
+-----------------
+            Netlist: netlist
+          Floorplan: design_1
+      Design limits: <entire design considered>
+           Ruledeck: default
+             Max checks: <unlimited>
+             Checks found: 0
++------+----------+-------------+--------+
+| Rule | Severity | Description | Checks |
++------+----------+-------------+--------+
++------+----------+-------------+--------+
+
+2. REPORT DETAILS
+-----------------
+

@@ -92,8 +92,9 @@ python scripts/run_jtag.py
 cd fpga && vivado -mode batch -source write_netlist.tcl   # -> fpga/build/zcu104_top_funcsim.v
 python scripts/run_postimpl.py
 
-# 6. Regenerate the Vivado GUI project (optional)
-cd fpga && vivado -mode batch -source create_project.tcl
+# 6. Vivado GUI project: regenerate it, optionally run synth/impl/bitstream as project runs
+cd fpga && vivado -mode batch -source create_project.tcl   # -> fpga/vivado/Small_SoC.xpr
+cd fpga && vivado -mode batch -source run_project.tcl      # same as clicking Generate Bitstream
 ```
 
 On the board: connect the USB-UART, open a terminal at 115200 8N1 on the
