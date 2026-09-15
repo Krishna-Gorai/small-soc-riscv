@@ -10,9 +10,12 @@ Xilinx Zynq UltraScale+ ZCU104 board.
                         │        riscv_core       │  RV32I + Zicsr, multicycle
                         │  M-mode CSRs, traps,    │  (5–6 cycles / instruction)
                         │  timer interrupt        │
-                        └───────────┬─────────────┘
-                                    │ AXI4-Lite master (fetch + data)
-                     ┌──────────────┴──────────────┐
+                        └───────────┬─────────────┘  ▲ halt / reset
+                                    │ AXI4-Lite       │
+        JTAG (BSCANE2 or ┌──────────┴───────┐   ┌─────┴────┐
+        jtag_tap) ──────▶│ jtag_dbg master  │──▶│ arbiter  │
+                         └──────────────────┘   └─────┬────┘
+                     ┌────────────────────────────────┴┐
                      │    axi_lite_interconnect    │  decode on addr[29:28]
                      └──┬────────┬────────┬────────┬┘
                         │        │        │        │
@@ -29,7 +32,8 @@ Xilinx Zynq UltraScale+ ZCU104 board.
 |---|---|
 | ISA | RV32I base + Zicsr; `ecall`, `ebreak`, `mret`, `fence`/`fence.i`/`wfi` accepted; machine-mode CSRs (`mstatus`, `mie`, `mip`, `mtvec`, `mepc`, `mcause`, `mscratch`, `mcycle`, `minstret`, …) |
 | Verification | **41 / 41** tests of the official `riscv-tests` rv32ui suite pass bit-exactly in xsim (`ma_data` skipped: no misaligned-access traps); harness verified to catch injected bugs |
-| Bus | Hand-written AXI4-Lite master (core) and four AXI4-Lite slaves, single-outstanding |
+| Bus | Hand-written AXI4-Lite master (core) and four AXI4-Lite slaves, single-outstanding; two-master arbiter |
+| Debug | **JTAG debug port**: halt / resume / reset the core, peek & poke any address, load a program without rebuilding the bitstream. IEEE 1149.1 TAP for simulation, `BSCANE2` on the FPGA (no extra pins), Vivado hw-manager Tcl host script |
 | Software | GCC 15 (xPack `riscv-none-elf`), custom linker script + `crt0`, trap vector, board-support library; `hello` and `irq_demo` programs |
 | FPGA | ZCU104 (xczu7ev), 100 MHz from the 300 MHz board clock via `BUFGCE_DIV`, no MMCM / no IP; see [Results](#results) |
 | Size | ~1.1 k lines of RTL; the whole SoC is 1.5 k LUTs / 8 BRAMs and closes timing at 100 MHz with 5.4 ns to spare |
@@ -38,12 +42,15 @@ Xilinx Zynq UltraScale+ ZCU104 board.
 
 ```
 rtl/                 SoC RTL (Verilog-2001), one module per file, program.hex = BRAM image
-fpga/                zcu104_top.v wrapper, zcu104.xdc, build.tcl (non-project flow → .bit)
+                     incl. jtag_tap.v, jtag_dbg.v, axi_lite_arbiter.v (debug port)
+fpga/                zcu104_top.v wrapper (BSCANE2), zcu104.xdc, build.tcl (non-project flow → .bit),
+                     jtag_host.tcl (hardware-manager driver for the debug port)
 sw/common/           link.ld, crt0.S, trap.S, soc.h (memory map + CSR helpers), uart.c, timer.c
 sw/hello/            banner + LED chase + switch report + UART echo
 sw/irq_demo/         timer interrupt via mtvec/mret, ecall, cycle/instret counters
 tests/isa/           riscv-tests rv32ui (vendored) + SoC test environment + run_isa.py
 tests/tb/            tb_isa.v: generic program runner with UART decode, PASS/FAIL detection
+                     tb_jtag.v: JTAG bus-functional model, load-and-run over the debug port
 scripts/             simlib.py (xsim driver), run_prog.py, bin2hex.py
 docs/                architecture, memory map, register maps, results
 ```
@@ -78,11 +85,14 @@ cd sw/irq_demo && make sim
 cd sw/hello && make install          # -> rtl/program.hex
 cd fpga && vivado -mode batch -source build.tcl     # -> fpga/build/zcu104_top.bit
 
-# 4. Gate-level check of the implemented design (post-route functional simulation)
+# 4. JTAG debug port: halt, load hello over JTAG, run, peek registers (simulation)
+python scripts/run_jtag.py
+
+# 5. Gate-level check of the implemented design (post-route functional simulation)
 cd fpga && vivado -mode batch -source write_netlist.tcl   # -> fpga/build/zcu104_top_funcsim.v
 python scripts/run_postimpl.py
 
-# 5. Regenerate the Vivado GUI project (optional)
+# 6. Regenerate the Vivado GUI project (optional)
 cd fpga && vivado -mode batch -source create_project.tcl
 ```
 
@@ -90,6 +100,11 @@ On the board: connect the USB-UART, open a terminal at 115200 8N1 on the
 third CP2108 channel (the PL UART), programme the bitstream. The banner
 appears, the LEDs chase, the DIP switches are reported when changed and typed
 characters are echoed.
+
+Over JTAG (Vivado hardware manager, same USB cable): `source
+fpga/jtag_host.tcl`, then `jtag_open`, `dbg_halt`, `dbg_load
+sw/irq_demo/irq_demo.hex`, `dbg_reset`, `dbg_run` swaps in a different
+program without rebuilding; `dbg_peek 0x30000000` reads the timer live.
 
 ## Results
 
@@ -102,9 +117,10 @@ ZCU104 (xczu7ev-ffvc1156-2-e), Vivado 2025.1, 100 MHz, default flow
 | of which core (`riscv_core`) | 1 377 | 488 | 0 | 0 | | |
 
 Verification: 41 / 41 riscv-tests rv32ui, the `hello` and `irq_demo`
-programs as self-checking simulations, and a post-implementation functional
-simulation of the routed netlist that boots from the bitstream's BRAM image
-and prints the banner on the UART.
+programs as self-checking simulations, a JTAG test that loads a program over
+the debug port and runs it, and a post-implementation functional simulation
+of the routed netlist that boots from the bitstream's BRAM image and prints
+the banner on the UART.
 
 ## Core micro-architecture in one paragraph
 

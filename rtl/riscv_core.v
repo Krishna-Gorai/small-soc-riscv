@@ -5,6 +5,8 @@ module riscv_core #(
     input  wire        clk,
     input  wire        rst_n,
     input  wire        irq_timer,   // machine timer interrupt (level)
+    input  wire        dbg_halt_req, // debug: stop at the next instruction boundary
+    output wire        dbg_halted,   // debug: core is stopped (no bus activity)
 
     // AXI-Lite master (shared for fetch and data access)
     output reg  [31:0] m_axi_araddr,
@@ -285,6 +287,8 @@ module riscv_core #(
         endcase
     end
 
+    assign dbg_halted = (state == S_IF_ADDR) && dbg_halt_req && !m_axi_arvalid;
+
     // ---------------- Main FSM ----------------
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -324,8 +328,12 @@ module riscv_core #(
             case (state)
 
             S_IF_ADDR: begin
-                m_axi_araddr  <= pc_reg;
-                m_axi_arvalid <= 1'b1;
+                // A halt request is honoured here, before the fetch is issued,
+                // so a halted core has no transaction in flight on the bus.
+                if (!(dbg_halt_req && !m_axi_arvalid)) begin
+                    m_axi_araddr  <= pc_reg;
+                    m_axi_arvalid <= 1'b1;
+                end
                 if (m_axi_arvalid && m_axi_arready) begin
                     m_axi_arvalid <= 1'b0;
                     m_axi_rready  <= 1'b1;

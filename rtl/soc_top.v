@@ -9,7 +9,16 @@ module soc_top #(
     output wire [31:0] led,
     input  wire [31:0] sw,
     output wire         uart_tx_pin,
-    input  wire         uart_rx_pin
+    input  wire         uart_rx_pin,
+
+    // JTAG debug port: BSCANE2-compatible user-register interface
+    input  wire         jtag_tck,
+    input  wire         jtag_tdi,
+    output wire         jtag_tdo,
+    input  wire         jtag_sel,
+    input  wire         jtag_capture,
+    input  wire         jtag_shift,
+    input  wire         jtag_update
 );
     // 2-FF reset synchronizer
     reg rst_sync0, rst_n;
@@ -26,9 +35,12 @@ module soc_top #(
     wire        c_awvalid, c_awready, c_wvalid, c_wready, c_bvalid, c_bready;
 
     wire irq_timer;
+    wire dbg_halt_req, dbg_core_rst, dbg_halted;
+    wire core_rst_n = rst_n & ~dbg_core_rst;   // debugger can reset the core alone
 
     riscv_core u_core (
-        .clk(clk), .rst_n(rst_n), .irq_timer(irq_timer),
+        .clk(clk), .rst_n(core_rst_n), .irq_timer(irq_timer),
+        .dbg_halt_req(dbg_halt_req), .dbg_halted(dbg_halted),
         .m_axi_araddr(c_araddr), .m_axi_arvalid(c_arvalid), .m_axi_arready(c_arready),
         .m_axi_rdata(c_rdata),   .m_axi_rresp(c_rresp), .m_axi_rvalid(c_rvalid), .m_axi_rready(c_rready),
         .m_axi_awaddr(c_awaddr), .m_axi_awvalid(c_awvalid), .m_axi_awready(c_awready),
@@ -46,12 +58,57 @@ module soc_top #(
     wire u_arvalid,u_arready,u_rvalid,u_rready,u_awvalid,u_awready,u_wvalid,u_wready,u_bvalid,u_bready;
     wire t_arvalid,t_arready,t_rvalid,t_rready,t_awvalid,t_awready,t_wvalid,t_wready,t_bvalid,t_bready;
 
+    // Debug master <-> arbiter wires
+    wire [31:0] d_araddr, d_awaddr, d_wdata, d_rdata;
+    wire [3:0]  d_wstrb;
+    wire [1:0]  d_rresp, d_bresp;
+    wire        d_arvalid, d_arready, d_rvalid, d_rready;
+    wire        d_awvalid, d_awready, d_wvalid, d_wready, d_bvalid, d_bready;
+
+    jtag_dbg u_dbg (
+        .tck(jtag_tck), .tdi(jtag_tdi), .tdo(jtag_tdo), .sel(jtag_sel),
+        .capture(jtag_capture), .shift(jtag_shift), .update(jtag_update),
+        .clk(clk), .rst_n(rst_n),
+        .dbg_halt_req(dbg_halt_req), .dbg_core_rst(dbg_core_rst), .dbg_halted(dbg_halted),
+        .m_axi_araddr(d_araddr), .m_axi_arvalid(d_arvalid), .m_axi_arready(d_arready),
+        .m_axi_rdata(d_rdata),   .m_axi_rresp(d_rresp), .m_axi_rvalid(d_rvalid), .m_axi_rready(d_rready),
+        .m_axi_awaddr(d_awaddr), .m_axi_awvalid(d_awvalid), .m_axi_awready(d_awready),
+        .m_axi_wdata(d_wdata),   .m_axi_wstrb(d_wstrb), .m_axi_wvalid(d_wvalid), .m_axi_wready(d_wready),
+        .m_axi_bresp(d_bresp),   .m_axi_bvalid(d_bvalid), .m_axi_bready(d_bready)
+    );
+
+    // Arbiter <-> Interconnect wires
+    wire [31:0] x_araddr, x_awaddr, x_wdata, x_rdata;
+    wire [3:0]  x_wstrb;
+    wire [1:0]  x_rresp, x_bresp;
+    wire        x_arvalid, x_arready, x_rvalid, x_rready;
+    wire        x_awvalid, x_awready, x_wvalid, x_wready, x_bvalid, x_bready;
+
+    axi_lite_arbiter u_arb (
+        .clk(clk), .rst_n(rst_n),
+        .m0_araddr(c_araddr), .m0_arvalid(c_arvalid), .m0_arready(c_arready),
+        .m0_rdata(c_rdata),   .m0_rresp(c_rresp), .m0_rvalid(c_rvalid), .m0_rready(c_rready),
+        .m0_awaddr(c_awaddr), .m0_awvalid(c_awvalid), .m0_awready(c_awready),
+        .m0_wdata(c_wdata),   .m0_wstrb(c_wstrb), .m0_wvalid(c_wvalid), .m0_wready(c_wready),
+        .m0_bresp(c_bresp),   .m0_bvalid(c_bvalid), .m0_bready(c_bready),
+        .m1_araddr(d_araddr), .m1_arvalid(d_arvalid), .m1_arready(d_arready),
+        .m1_rdata(d_rdata),   .m1_rresp(d_rresp), .m1_rvalid(d_rvalid), .m1_rready(d_rready),
+        .m1_awaddr(d_awaddr), .m1_awvalid(d_awvalid), .m1_awready(d_awready),
+        .m1_wdata(d_wdata),   .m1_wstrb(d_wstrb), .m1_wvalid(d_wvalid), .m1_wready(d_wready),
+        .m1_bresp(d_bresp),   .m1_bvalid(d_bvalid), .m1_bready(d_bready),
+        .s_araddr(x_araddr), .s_arvalid(x_arvalid), .s_arready(x_arready),
+        .s_rdata(x_rdata),   .s_rresp(x_rresp), .s_rvalid(x_rvalid), .s_rready(x_rready),
+        .s_awaddr(x_awaddr), .s_awvalid(x_awvalid), .s_awready(x_awready),
+        .s_wdata(x_wdata),   .s_wstrb(x_wstrb), .s_wvalid(x_wvalid), .s_wready(x_wready),
+        .s_bresp(x_bresp),   .s_bvalid(x_bvalid), .s_bready(x_bready)
+    );
+
     axi_lite_interconnect u_xbar (
-        .s_axi_araddr(c_araddr), .s_axi_arvalid(c_arvalid), .s_axi_arready(c_arready),
-        .s_axi_rdata(c_rdata),   .s_axi_rresp(c_rresp), .s_axi_rvalid(c_rvalid), .s_axi_rready(c_rready),
-        .s_axi_awaddr(c_awaddr), .s_axi_awvalid(c_awvalid), .s_axi_awready(c_awready),
-        .s_axi_wdata(c_wdata),   .s_axi_wstrb(c_wstrb), .s_axi_wvalid(c_wvalid), .s_axi_wready(c_wready),
-        .s_axi_bresp(c_bresp),   .s_axi_bvalid(c_bvalid), .s_axi_bready(c_bready),
+        .s_axi_araddr(x_araddr), .s_axi_arvalid(x_arvalid), .s_axi_arready(x_arready),
+        .s_axi_rdata(x_rdata),   .s_axi_rresp(x_rresp), .s_axi_rvalid(x_rvalid), .s_axi_rready(x_rready),
+        .s_axi_awaddr(x_awaddr), .s_axi_awvalid(x_awvalid), .s_axi_awready(x_awready),
+        .s_axi_wdata(x_wdata),   .s_axi_wstrb(x_wstrb), .s_axi_wvalid(x_wvalid), .s_axi_wready(x_wready),
+        .s_axi_bresp(x_bresp),   .s_axi_bvalid(x_bvalid), .s_axi_bready(x_bready),
 
         .m0_araddr(b_araddr), .m0_arvalid(b_arvalid), .m0_arready(b_arready),
         .m0_rdata(b_rdata),   .m0_rresp(b_rresp), .m0_rvalid(b_rvalid), .m0_rready(b_rready),

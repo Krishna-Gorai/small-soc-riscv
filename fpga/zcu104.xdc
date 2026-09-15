@@ -36,3 +36,9 @@ set_property -dict {PACKAGE_PIN A20 IOSTANDARD LVCMOS18} [get_ports uart_rx]
 # ---- asynchronous board I/O: no timing requirement ----
 set_false_path -from [get_ports {cpu_reset dip[*] pb[*] uart_rx}]
 set_false_path -to   [get_ports {led[*] uart_tx}]
+
+# ---- JTAG debug port: BSCANE2 TCK is an independent clock ----
+# The hardware manager's default TCK is 15 MHz; constrain at 30 MHz for margin.
+create_clock -period 33.333 -name jtag_tck [get_pins u_bscan/TCK]
+set_clock_groups -asynchronous -group [get_clocks jtag_tck] \
+                               -group [get_clocks -include_generated_clocks clk300]

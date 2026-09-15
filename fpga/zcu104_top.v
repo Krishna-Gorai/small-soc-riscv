@@ -8,6 +8,8 @@
 //    configuration, without the button ever being pressed.
 //  * GPIO: LEDs 0-3 on the low nibble of GPIO_OUT; GPIO_IN = {push buttons, DIP}.
 //  * UART on the PL channel of the on-board CP2108 USB-UART bridge.
+//  * JTAG debug port through BSCANE2 (USER1): the SoC's jtag_dbg hangs off the
+//    FPGA's own JTAG chain, so the board's USB-JTAG reaches it with no extra pins.
 module zcu104_top (
     input  wire       clk300_p,
     input  wire       clk300_n,
@@ -44,12 +46,23 @@ module zcu104_top (
         end
     end
 
+    // ---- JTAG: USER1 register of the device's own TAP ----
+    wire bs_tck, bs_tdi, bs_tdo, bs_sel, bs_capture, bs_shift, bs_update, bs_tck_buf;
+    BSCANE2 #(.JTAG_CHAIN(1)) u_bscan (
+        .CAPTURE(bs_capture), .DRCK(), .RESET(), .RUNTEST(), .SEL(bs_sel),
+        .SHIFT(bs_shift), .TCK(bs_tck), .TDI(bs_tdi), .TMS(), .UPDATE(bs_update),
+        .TDO(bs_tdo)
+    );
+    BUFG u_tck_bufg (.I(bs_tck), .O(bs_tck_buf));
+
     // ---- SoC ----
     wire [31:0] gpio_out;
     soc_top #(.CLKS_PER_BIT(CLKS_PER_BIT)) u_soc (
         .clk(clk), .rst_n_pin(rst_n),
         .led(gpio_out), .sw({24'd0, pb, dip}),
-        .uart_tx_pin(uart_tx), .uart_rx_pin(uart_rx)
+        .uart_tx_pin(uart_tx), .uart_rx_pin(uart_rx),
+        .jtag_tck(bs_tck_buf), .jtag_tdi(bs_tdi), .jtag_tdo(bs_tdo), .jtag_sel(bs_sel),
+        .jtag_capture(bs_capture), .jtag_shift(bs_shift), .jtag_update(bs_update)
     );
     assign led = gpio_out[3:0];
 endmodule

@@ -28,7 +28,9 @@ module tb_isa;
 
     soc_top #(.CLKS_PER_BIT(CLKS_PER_BIT), .INIT_FILE("")) dut (
         .clk(clk), .rst_n_pin(rst_n_pin), .led(led), .sw(sw),
-        .uart_tx_pin(uart_tx_pin), .uart_rx_pin(uart_rx_pin)
+        .uart_tx_pin(uart_tx_pin), .uart_rx_pin(uart_rx_pin),
+        .jtag_tck(1'b0), .jtag_tdi(1'b0), .jtag_tdo(), .jtag_sel(1'b0),
+        .jtag_capture(1'b0), .jtag_shift(1'b0), .jtag_update(1'b0)
     );
 
     // ---- program load ----
