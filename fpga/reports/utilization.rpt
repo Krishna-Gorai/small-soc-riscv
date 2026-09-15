@@ -1,0 +1,35 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.1 (win64) Build 6140274 Thu May 22 00:12:29 MDT 2025
+| Date         : Tue Sep 15 12:07:40 2026
+| Host         : Krishna_NITjsr running 64-bit major release  (build 9200)
+| Command      : report_utilization -file C:/work/Small_SoC/fpga/build/utilization.rpt -hierarchical -hierarchical_depth 2
+| Design       : zcu104_top
+| Device       : xczu7ev-ffvc1156-2-e
+| Speed File   : -2
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++----------------+---------------+------------+------------+---------+------+-----+--------+--------+------+------------+
+|    Instance    |     Module    | Total LUTs | Logic LUTs | LUTRAMs | SRLs | FFs | RAMB36 | RAMB18 | URAM | DSP Blocks |
++----------------+---------------+------------+------------+---------+------+-----+--------+--------+------+------------+
+| zcu104_top     |         (top) |       1526 |       1486 |      40 |    0 | 766 |      8 |      0 |    0 |          0 |
+|   (zcu104_top) |         (top) |          7 |          7 |       0 |    0 |  10 |      0 |      0 |    0 |          0 |
+|   u_soc        |       soc_top |       1519 |       1479 |      40 |    0 | 756 |      8 |      0 |    0 |          0 |
+|     u_uart     |  axilite_uart |         72 |         72 |       0 |    0 |  87 |      0 |      0 |    0 |          0 |
+|     u_core     |    riscv_core |       1377 |       1337 |      40 |    0 | 488 |      0 |      0 |    0 |          0 |
+|     u_gpio     |  axilite_gpio |          0 |          0 |       0 |    0 |  72 |      0 |      0 |    0 |          0 |
+|     u_timer    | axilite_timer |         66 |         66 |       0 |    0 | 103 |      0 |      0 |    0 |          0 |
++----------------+---------------+------------+------------+---------+------+-----+--------+--------+------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

@@ -1,0 +1,24 @@
+# Vivado
+fpga/vivado/
+fpga/build/
+*.jou
+*.log
+*.pb
+*.wdb
+*.vcd
+.Xil/
+xsim.dir/
+webtalk*
+# simulation / test build products
+sim/
+tests/isa/build/
+# software build products
+sw/**/*.elf
+sw/**/*.bin
+sw/**/*.map
+sw/**/*.lst
+sw/**/*_sim.hex
+# python
+__pycache__/
+fpga/clockInfo.txt
+fpga/dfx_runtime.txt
