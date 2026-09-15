@@ -78,7 +78,11 @@ cd sw/irq_demo && make sim
 cd sw/hello && make install          # -> rtl/program.hex
 cd fpga && vivado -mode batch -source build.tcl     # -> fpga/build/zcu104_top.bit
 
-# 4. Regenerate the Vivado GUI project (optional)
+# 4. Gate-level check of the implemented design (post-route functional simulation)
+cd fpga && vivado -mode batch -source write_netlist.tcl   # -> fpga/build/zcu104_top_funcsim.v
+python scripts/run_postimpl.py
+
+# 5. Regenerate the Vivado GUI project (optional)
 cd fpga && vivado -mode batch -source create_project.tcl
 ```
 
@@ -97,8 +101,10 @@ ZCU104 (xczu7ev-ffvc1156-2-e), Vivado 2025.1, 100 MHz, default flow
 | whole SoC (`soc_top`) | 1 519 | 756 | 8 | 0 | met, WNS +5.36 ns | 0.63 W (0.015 W dynamic) |
 | of which core (`riscv_core`) | 1 377 | 488 | 0 | 0 | | |
 
-Verification: 41 / 41 riscv-tests rv32ui, plus the `hello` and `irq_demo`
-programs as self-checking simulations.
+Verification: 41 / 41 riscv-tests rv32ui, the `hello` and `irq_demo`
+programs as self-checking simulations, and a post-implementation functional
+simulation of the routed netlist that boots from the bitstream's BRAM image
+and prints the banner on the UART.
 
 ## Core micro-architecture in one paragraph
 
